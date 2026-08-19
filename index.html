@@ -1878,47 +1878,13 @@ window.FITBEE_DATA = {
       });
     } catch (e) { return JSON.parse(JSON.stringify(DEFAULTS)); }
   }
-  function save(s) { localStorage.setItem("fitbee_state", JSON.stringify(s)); cloudSync(s); }
+  function save(s) { localStorage.setItem("fitbee_state", JSON.stringify(s)); }
   function setState(patch) {
     const s = load();
     if (typeof patch === "function") patch(s);
     else Object.assign(s, patch);
     save(s);
     return s;
-  }
-
-  /* ---- 云端同步 + 登录态 ---- */
-  let syncTimer = null;
-  function cloudSync(s) {
-    const token = localStorage.getItem("fitbee_token");
-    if (!token) return;
-    if (syncTimer) clearTimeout(syncTimer);
-    syncTimer = setTimeout(() => {
-      fetch("api/sync/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-        body: JSON.stringify({ data: s })
-      }).then(r => r.json()).catch(() => {});
-    }, 800);   // 防抖：停止操作 0.8s 后上传
-  }
-  // 登录后从云端拉取，合并到本地（云端有数据且本地为空时采用云端）
-  function cloudLoad() {
-    const token = localStorage.getItem("fitbee_token");
-    if (!token) return;
-    return fetch("api/sync/load", { headers: { "Authorization": "Bearer " + token } })
-      .then(r => r.json())
-      .then(res => {
-        if (res.code === 0 && res.data) {
-          const local = localStorage.getItem("fitbee_state");
-          const hasLocal = local && JSON.parse(local).records && JSON.parse(local).records.food && JSON.parse(local).records.food.length;
-          if (!hasLocal) {
-            const merged = Object.assign({}, JSON.parse(JSON.stringify(DEFAULTS)), res.data);
-            localStorage.setItem("fitbee_state", JSON.stringify(merged));
-          }
-        }
-        return res;
-      })
-      .catch(() => {});
   }
 
   /* Mifflin-St Jeor BMR */
@@ -3151,7 +3117,7 @@ window.FITBEE_ICON = function (name) {
     $("#page-me").innerHTML = `
       <div class="me-head">
         <div class="me-avatar"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.6"/><path d="M4.5 20.5c1.2-3.5 4-5.5 7.5-5.5s6.3 2 7.5 5.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
-        <div><div class="me-name">${window.FITBEE_ME_NICK || "瘦瘦"}</div><div class="me-sub">${p.gender === 'female' ? '女' : '男'} · ${p.age}岁 · ${p.height}cm · ${p.weight}kg</div></div>
+        <div><div class="me-name">瘦瘦</div><div class="me-sub">${p.gender === 'female' ? '女' : '男'} · ${p.age}岁 · ${p.height}cm · ${p.weight}kg</div></div>
       </div>
       <div class="me-stats">
         <div class="me-stat"><div class="v">${Math.round(F.bmr(p))}</div><div class="l">BMR</div></div>
@@ -3174,7 +3140,6 @@ window.FITBEE_ICON = function (name) {
         <div class="menu-item" onclick="M.openMeEdit('body')"><span class="m-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3.5c-3.3 0-6 2.4-6 6 0 2.8 1.8 4.7 3 6.1.4.5.9 1 .9 1.6v2.3c0 .8.7 1.5 1.5 1.5h1.2c.8 0 1.5-.7 1.5-1.5v-2.3c0-.6.5-1.1.9-1.6 1.2-1.4 3-3.3 3-6.1 0-3.6-2.7-6-6-6z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 9.5c.5-.8 1.2-1.2 2-1.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>身体数据<span class="micro arr">${p.height}cm · ${p.weight}kg</span><span class="arr"><svg viewBox="0 0 24 24" fill="none"><path d="m9 5 7 7-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
         <div class="menu-item" onclick="M.openWeightChart()"><span class="m-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>体重曲线<span class="arr"><svg viewBox="0 0 24 24" fill="none"><path d="m9 5 7 7-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
         <div class="menu-item" onclick="M.openMeEdit('settings')"><span class="m-ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.06-.4.1-.8.1-1.2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>设置<span class="arr"><svg viewBox="0 0 24 24" fill="none"><path d="m9 5 7 7-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
-        <div class="menu-item" onclick="M.logout()"><span class="m-ic" style="color:var(--over)"><svg viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span style="color:var(--over)">退出登录</span><span class="arr"><svg viewBox="0 0 24 24" fill="none"><path d="m9 5 7 7-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
       </div>
       <div style="text-align:center;padding:14px 16px 20px"><span class="micro">FitBee v1.2 · 内容仅供参考，不构成医学建议</span></div>`;
   }
@@ -4623,47 +4588,7 @@ window.FITBEE_ICON = function (name) {
     if (page === "detail") openDetail(location.hash.replace("#", "") || "168");
   })();
 
-  // ---- 登录守卫：未登录跳转登录页；已登录拉取云端数据 ----
-  (function authGate() {
-    const token = localStorage.getItem("fitbee_token");
-    if (!token) { location.replace("login.html"); return; }
-    try {
-      const u = JSON.parse(localStorage.getItem("fitbee_user") || "{}");
-      window.FITBEE_ME_NICK = u.nickname || "瘦瘦";
-    } catch (e) {}
-    // 拉取云端数据（首次登录合并到本地）
-    cloudLoad().then(() => {
-      renderHome();
-    }).catch(() => {});
-    // 校验 token 是否有效（过期则重新登录）
-    fetch("api/auth/me", { headers: { "Authorization": "Bearer " + token } })
-      .then(r => r.json())
-      .then(res => {
-        if (res.code !== 0) {
-          localStorage.removeItem("fitbee_token");
-          localStorage.removeItem("fitbee_user");
-          location.replace("login.html");
-        } else {
-          const u = res.data;
-          window.FITBEE_ME_NICK = u.nickname || "瘦瘦";
-          localStorage.setItem("fitbee_user", JSON.stringify({ id: u.id, phone: u.phone, role: u.role, nickname: u.nickname }));
-          if (u.data && u.data.profile) {
-            F.setState(s => { Object.assign(s.profile, u.data.profile); });
-          }
-          renderHome();
-        }
-      })
-      .catch(() => {});
-  })();
-
-  // 退出登录
-  function logout() {
-    localStorage.removeItem("fitbee_token");
-    localStorage.removeItem("fitbee_user");
-    location.replace("login.html");
-  }
-
-  window.M = { goTab, goRecipe, goKb, goKbFromHome, kbBack, goExercise, rpAdd, rpRemove, rpPeopleSet, rpSelect, rpAiGenerate, openDetail, openDetailFromHome, detailBack, adoptMethod, adoptFromQuiz, addFood, stepAmount, confirmFood, delFood, editFood, saveFoodEdit, pickEx, setInt, confirmEx, delEx, quizAnswer, quizBack, quizRestart, openWater, pickDrink, stepWater, confirmWater, delWater, stepGoal, openWeight, setWeightUnit, confirmWeight, openMeEdit, setPersona, setPace, saveBody, saveSettings2, openWeightChart, closeSheet, renderDiary, openDiary, pickMood, addDiaryImage, saveDiary, delDiary, viewDiary, openLedger, addExpense, delExpense, pickLedgerCat, addCustomCat, addExpensePage, delExpensePage, setLedgerType, goLedgerPage, openFoodCalendar, calPrevMonth, calNextMonth, calPickDate, addFoodRecord, pickFoodImg, pickFrMood, pickFrMeal, pickFrSearch, saveFoodTemplate, fillFoodTemplate, delFoodTemplate, saveFoodRecord, delFoodRecord, calPrevMonth2, calNextMonth2, delFoodRec2, editFoodRec2, editDayFood, delDayFood, openDayDetail, openStickerEditor, seZoom, seReset, seSave, addMealPlan, logout };
+  window.M = { goTab, goRecipe, goKb, goKbFromHome, kbBack, goExercise, rpAdd, rpRemove, rpPeopleSet, rpSelect, rpAiGenerate, openDetail, openDetailFromHome, detailBack, adoptMethod, adoptFromQuiz, addFood, stepAmount, confirmFood, delFood, editFood, saveFoodEdit, pickEx, setInt, confirmEx, delEx, quizAnswer, quizBack, quizRestart, openWater, pickDrink, stepWater, confirmWater, delWater, stepGoal, openWeight, setWeightUnit, confirmWeight, openMeEdit, setPersona, setPace, saveBody, saveSettings2, openWeightChart, closeSheet, renderDiary, openDiary, pickMood, addDiaryImage, saveDiary, delDiary, viewDiary, openLedger, addExpense, delExpense, pickLedgerCat, addCustomCat, addExpensePage, delExpensePage, setLedgerType, goLedgerPage, openFoodCalendar, calPrevMonth, calNextMonth, calPickDate, addFoodRecord, pickFoodImg, pickFrMood, pickFrMeal, pickFrSearch, saveFoodTemplate, fillFoodTemplate, delFoodTemplate, saveFoodRecord, delFoodRecord, calPrevMonth2, calNextMonth2, delFoodRec2, editFoodRec2, editDayFood, delDayFood, openDayDetail, openStickerEditor, seZoom, seReset, seSave, addMealPlan };
 })();
 
 </script>
